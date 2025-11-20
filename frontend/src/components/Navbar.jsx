@@ -27,6 +27,12 @@ const Navbar = () => {
             <Link to="/products" className="hover:text-kenyan-gold transition duration-200">
               Products
             </Link>
+            <Link to="/about" className="hover:text-kenyan-gold transition duration-200">
+              About
+            </Link>
+            <Link to="/contact" className="hover:text-kenyan-gold transition duration-200">
+              Contact
+            </Link>
             <Link to="/products?category=jewelry" className="hover:text-kenyan-gold transition duration-200">
               Jewelry
             </Link>
@@ -58,9 +64,10 @@ const Navbar = () => {
               )}
             </Link>
 
-            <button className="p-2 hover:text-kenyan-gold transition duration-200">
+            {/* User Section */}
+            <Link to="/login" className="p-2 hover:text-kenyan-gold transition duration-200">
               <User className="h-6 w-6" />
-            </button>
+            </Link>
           </div>
         </div>
       </div>
