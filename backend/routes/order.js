@@ -1,0 +1,74 @@
+// backend/routes/orders.js
+import express from 'express';
+import Order from '../models/Order.js';
+
+const router = express.Router();
+
+// Create new order
+router.post('/', async (req, res) => {
+  try {
+    const order = new Order(req.body);
+    const savedOrder = await order.save();
+    
+    // Populate product details for response
+    await savedOrder.populate('items.product');
+    
+    res.status(201).json(savedOrder);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+// Get user orders
+router.get('/user/:userId', async (req, res) => {
+  try {
+    const orders = await Order.find({ user: req.params.userId })
+      .populate('items.product')
+      .sort({ createdAt: -1 });
+    
+    res.json(orders);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Get single order
+router.get('/:id', async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id).populate('items.product');
+    
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+    
+    res.json(order);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Update order status
+router.put('/:id/status', async (req, res) => {
+  try {
+    const { status, trackingNumber } = req.body;
+    
+    const order = await Order.findByIdAndUpdate(
+      req.params.id,
+      { 
+        status,
+        ...(trackingNumber && { trackingNumber })
+      },
+      { new: true }
+    ).populate('items.product');
+    
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+    
+    res.json(order);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+export default router;
