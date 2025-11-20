@@ -5,7 +5,7 @@ const CartContext = createContext();
 
 const cartReducer = (state, action) => {
   switch (action.type) {
-    case 'ADD_TO_CART':
+    case 'ADD_TO_CART': {
       const existingItem = state.items.find(item => item.id === action.payload.id);
       if (existingItem) {
         return {
@@ -21,14 +21,16 @@ const cartReducer = (state, action) => {
         ...state,
         items: [...state.items, { ...action.payload, quantity: 1 }]
       };
+    }
 
-    case 'REMOVE_FROM_CART':
+    case 'REMOVE_FROM_CART': {
       return {
         ...state,
         items: state.items.filter(item => item.id !== action.payload)
       };
+    }
 
-    case 'UPDATE_QUANTITY':
+    case 'UPDATE_QUANTITY': {
       return {
         ...state,
         items: state.items.map(item =>
@@ -37,9 +39,11 @@ const cartReducer = (state, action) => {
             : item
         ).filter(item => item.quantity > 0)
       };
+    }
 
-    case 'CLEAR_CART':
+    case 'CLEAR_CART': {
       return { ...state, items: [] };
+    }
 
     default:
       return state;
@@ -77,21 +81,24 @@ export const CartProvider = ({ children }) => {
     return state.items.reduce((total, item) => total + item.quantity, 0);
   };
 
+  const value = {
+    cart: state,
+    addToCart,
+    removeFromCart,
+    updateQuantity,
+    clearCart,
+    getCartTotal,
+    getCartItemsCount
+  };
+
   return (
-    <CartContext.Provider value={{
-      cart: state,
-      addToCart,
-      removeFromCart,
-      updateQuantity,
-      clearCart,
-      getCartTotal,
-      getCartItemsCount
-    }}>
+    <CartContext.Provider value={value}>
       {children}
     </CartContext.Provider>
   );
 };
 
+// Custom hook for using cart context
 export const useCart = () => {
   const context = useContext(CartContext);
   if (!context) {

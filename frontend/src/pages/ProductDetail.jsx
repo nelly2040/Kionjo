@@ -59,7 +59,7 @@ const ProductDetail = () => {
         <span>/</span>
         <Link to={`/products?category=${product.category}`} className="hover:text-kenyan-brown capitalize">
           {product.category}
-        </span>
+        </Link>
         <span>/</span>
         <span className="text-charcoal">{product.name}</span>
       </nav>
