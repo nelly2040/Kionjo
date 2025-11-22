@@ -7,39 +7,39 @@ const Home = () => {
   const featuredProducts = [
     {
       id: 1,
-      name: "Maasai Beaded Necklace",
-      price: 45.99,
-      image: "https://images.unsplash.com/photo-1582142306909-195724d1a6ee?w=400&h=400&fit=crop",
+      name: "Maasai Beaded Bracelets",
+      price: 25.99,
+      image: "https://media.istockphoto.com/id/92056517/photo/african-beaded-necklace.jpg?s=612x612&w=0&k=20&c=QxYrpLtAwTFqlplSYh8yn8-6TQCJ01lV88_kVH3OBvI=",
       category: "jewelry",
       artisan: "Maasai Women Co-op",
       origin: "Maasai Mara"
     },
     {
-      id: 2,
-      name: "Handwoven Kiondo Basket",
-      price: 32.50,
-      image: "https://images.unsplash.com/photo-1586023492125-27a3dac85c3f?w=400&h=400&fit=crop",
+      id: 4,
+      name: "Kiondo Baskets",
+      price: 42.00,
+      image: "https://media.istockphoto.com/id/2229551613/photo/traditional-hand-crafted-carved-basket-kiondo-designs-texture-patterns.jpg?s=612x612&w=0&k=20&c=PWw_euiqmHCQN637fsS7rJ7lPUSo2jtHlqGYE8vn_Co=",
       category: "home-decor",
       artisan: "Kamba Weavers",
       origin: "Machakos"
     },
     {
-      id: 3,
-      name: "Soapstone Carved Elephant",
-      price: 78.00,
-      image: "https://images.unsplash.com/photo-1561731216-c53dee0c8e69?w=400&h=400&fit=crop",
+      id: 5,
+      name: "Soapstone Animal Carvings",
+      price: 85.00,
+      image: "https://media.istockphoto.com/id/1210793417/photo/carved-marble-elephant-on-a-white-background.jpg?s=612x612&w=0&k=20&c=BQ1xvIV6IU1rAERREpVrlV-Uizu57aAqZY1f0azFg6M=",
       category: "sculptures",
       artisan: "Kisii Stone Carvers",
       origin: "Kisii"
     },
     {
-      id: 4,
-      name: "Kitenge Fabric Dress",
-      price: 65.75,
-      image: "https://images.unsplash.com/photo-1585487000115-33b64cffd1e9?w=400&h=400&fit=crop",
-      category: "clothing",
-      artisan: "Nairobi Design Collective",
-      origin: "Nairobi"
+      id: 2,
+      name: "Maasai Shuka",
+      price: 35.50,
+      image: "https://media.istockphoto.com/id/115924875/photo/masai-attending-a-meeting-in-village-ngorongoro-conservationa-area-tanzania.jpg?s=612x612&w=0&k=20&c=8hDRy-JqGYfApeAB8qc2MLk7CF7GmU7F47u4t5bu8R8=",
+      category: "textiles",
+      artisan: "Maasai Weavers",
+      origin: "Narok"
     }
   ];
 
@@ -57,7 +57,7 @@ const Home = () => {
               Delivered Worldwide
             </p>
             <p className="text-lg mb-12 max-w-2xl mx-auto">
-              Discover handcrafted treasures from Kenyan artisans. Each piece tells a story of tradition, skill, and cultural heritage.
+              Discover 30+ handcrafted treasures from Kenyan artisans. Each piece tells a story of tradition, skill, and cultural heritage.
             </p>
             <div className="space-x-4">
               <Link
@@ -150,7 +150,7 @@ const Home = () => {
               to="/products"
               className="bg-maasai-red text-white px-8 py-3 rounded-lg font-semibold hover:bg-red-700 transition duration-200 inline-flex items-center"
             >
-              View All Products
+              View All 30+ Products
               <ArrowRight className="ml-2 h-5 w-5" />
             </Link>
           </div>
