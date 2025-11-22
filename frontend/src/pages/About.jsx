@@ -75,7 +75,7 @@ const About = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
             <div>
               <img
-                src="https://images.unsplash.com/photo-1586023492125-27a3dac85c3f?w=600&h=400&fit=crop"
+                src="https://media.istockphoto.com/id/1590598136/photo/craftsmen-carving-wood-in-tanzania.jpg?s=612x612&w=0&k=20&c=RO-15DUa0G5Q6lwHr4gZkTVNfNPQjILX-ovp4jbDRgo="
                 alt="Kenyan artisans at work"
                 className="rounded-lg shadow-lg"
               />

@@ -1,65 +1,114 @@
 // src/pages/Profile.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User, Mail, MapPin, Phone, Edit2, ShoppingBag, Heart } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { ordersAPI } from '../services/api';
+import toast from 'react-hot-toast';
 
 const Profile = () => {
   const [activeTab, setActiveTab] = useState('profile');
   const [isEditing, setIsEditing] = useState(false);
+  const [orders, setOrders] = useState([]);
+  const [wishlist, setWishlist] = useState([]);
+  const [loading, setLoading] = useState(false);
   
-  const [userData, setUserData] = useState({
-    firstName: 'John',
-    lastName: 'Doe',
-    email: 'john.doe@example.com',
-    phone: '+1234567890',
+  const { user, updateProfile } = useAuth();
+
+  // Load orders when orders tab is selected
+  useEffect(() => {
+    if (activeTab === 'orders' && user) {
+      loadOrders();
+    }
+  }, [activeTab, user]);
+
+  // Load wishlist when wishlist tab is selected
+  useEffect(() => {
+    if (activeTab === 'wishlist' && user) {
+      loadWishlist();
+    }
+  }, [activeTab, user]);
+
+  const loadOrders = async () => {
+    try {
+      setLoading(true);
+      const response = await ordersAPI.getMyOrders();
+      setOrders(response.orders || []);
+    } catch (error) {
+      console.error('Failed to load orders:', error);
+      toast.error('Failed to load orders');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadWishlist = async () => {
+    try {
+      setLoading(true);
+      // For now, using mock data since wishlist endpoint might not be implemented
+      // In real app, you'd call: const response = await wishlistAPI.getMyWishlist();
+      const mockWishlist = [
+        {
+          id: 4,
+          name: 'Kitenge Fabric Dress',
+          price: 65.75,
+          image: 'https://images.unsplash.com/photo-1585487000115-33b64cffd1e9?w=400&h=400&fit=crop'
+        },
+        {
+          id: 6,
+          name: 'Beaded Leather Sandals',
+          price: 55.25,
+          image: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=400&h=400&fit=crop'
+        }
+      ];
+      setWishlist(mockWishlist);
+    } catch (error) {
+      console.error('Failed to load wishlist:', error);
+      toast.error('Failed to load wishlist');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      const result = await updateProfile({
+        firstName: user.firstName,
+        lastName: user.lastName,
+        phone: user.phone,
+        address: user.address
+      });
+      
+      if (result.success) {
+        toast.success('Profile updated successfully!');
+        setIsEditing(false);
+      } else {
+        toast.error(result.error || 'Failed to update profile');
+      }
+    } catch (error) {
+      toast.error('Failed to update profile');
+    }
+  };
+
+  // Use real user data from AuthContext
+  const userData = user || {
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
     address: {
-      street: '123 Main Street',
-      city: 'Nairobi',
-      state: 'Nairobi County',
-      country: 'Kenya',
-      postalCode: '00100'
+      street: '',
+      city: '',
+      state: '',
+      country: '',
+      postalCode: ''
     }
-  });
+  };
 
-  const orders = [
-    {
-      id: 'ORD-001',
-      date: '2024-01-15',
-      total: 145.99,
-      status: 'Delivered',
-      items: [
-        { name: 'Maasai Beaded Necklace', quantity: 1, price: 45.99 },
-        { name: 'Handwoven Kiondo Basket', quantity: 2, price: 32.50 }
-      ]
-    },
-    {
-      id: 'ORD-002',
-      date: '2024-01-10',
-      total: 78.00,
-      status: 'Shipped',
-      items: [
-        { name: 'Soapstone Carved Elephant', quantity: 1, price: 78.00 }
-      ]
-    }
-  ];
-
-  const wishlist = [
-    {
-      id: 4,
-      name: 'Kitenge Fabric Dress',
-      price: 65.75,
-      image: 'https://images.unsplash.com/photo-1585487000115-33b64cffd1e9?w=400&h=400&fit=crop'
-    },
-    {
-      id: 6,
-      name: 'Beaded Leather Sandals',
-      price: 55.25,
-      image: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=400&h=400&fit=crop'
-    }
-  ];
-
-  const handleSave = () => {
-    setIsEditing(false);
-    // In real app, save to backend
+  // Handle input changes for editable fields
+  const handleInputChange = (field, value) => {
+    // In a real app, you'd update the local state and then send to backend on save
+    // For now, we'll just update the context through updateProfile on save
+    console.log(`Field ${field} changed to:`, value);
   };
 
   return (
@@ -127,7 +176,7 @@ const Profile = () => {
                   <input
                     type="text"
                     value={userData.firstName}
-                    onChange={(e) => setUserData({...userData, firstName: e.target.value})}
+                    onChange={(e) => handleInputChange('firstName', e.target.value)}
                     disabled={!isEditing}
                     className="w-full border border-gray-300 rounded-lg px-4 py-2 disabled:bg-gray-100"
                   />
@@ -139,7 +188,7 @@ const Profile = () => {
                   <input
                     type="text"
                     value={userData.lastName}
-                    onChange={(e) => setUserData({...userData, lastName: e.target.value})}
+                    onChange={(e) => handleInputChange('lastName', e.target.value)}
                     disabled={!isEditing}
                     className="w-full border border-gray-300 rounded-lg px-4 py-2 disabled:bg-gray-100"
                   />
@@ -163,10 +212,11 @@ const Profile = () => {
                   </label>
                   <input
                     type="tel"
-                    value={userData.phone}
-                    onChange={(e) => setUserData({...userData, phone: e.target.value})}
+                    value={userData.phone || ''}
+                    onChange={(e) => handleInputChange('phone', e.target.value)}
                     disabled={!isEditing}
                     className="w-full border border-gray-300 rounded-lg px-4 py-2 disabled:bg-gray-100"
+                    placeholder="Add phone number"
                   />
                 </div>
               </div>
@@ -181,11 +231,8 @@ const Profile = () => {
                     <input
                       type="text"
                       placeholder="Street Address"
-                      value={userData.address.street}
-                      onChange={(e) => setUserData({
-                        ...userData, 
-                        address: {...userData.address, street: e.target.value}
-                      })}
+                      value={userData.address?.street || ''}
+                      onChange={(e) => handleInputChange('address.street', e.target.value)}
                       disabled={!isEditing}
                       className="w-full border border-gray-300 rounded-lg px-4 py-2 disabled:bg-gray-100"
                     />
@@ -193,22 +240,16 @@ const Profile = () => {
                   <input
                     type="text"
                     placeholder="City"
-                    value={userData.address.city}
-                    onChange={(e) => setUserData({
-                      ...userData, 
-                      address: {...userData.address, city: e.target.value}
-                    })}
+                    value={userData.address?.city || ''}
+                    onChange={(e) => handleInputChange('address.city', e.target.value)}
                     disabled={!isEditing}
                     className="border border-gray-300 rounded-lg px-4 py-2 disabled:bg-gray-100"
                   />
                   <input
                     type="text"
                     placeholder="Postal Code"
-                    value={userData.address.postalCode}
-                    onChange={(e) => setUserData({
-                      ...userData, 
-                      address: {...userData.address, postalCode: e.target.value}
-                    })}
+                    value={userData.address?.postalCode || ''}
+                    onChange={(e) => handleInputChange('address.postalCode', e.target.value)}
                     disabled={!isEditing}
                     className="border border-gray-300 rounded-lg px-4 py-2 disabled:bg-gray-100"
                   />
@@ -237,7 +278,12 @@ const Profile = () => {
           {activeTab === 'orders' && (
             <div>
               <h2 className="text-xl font-bold text-charcoal mb-6">Order History</h2>
-              {orders.length === 0 ? (
+              {loading ? (
+                <div className="text-center py-12">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-maasai-red mx-auto"></div>
+                  <p className="text-gray-600 mt-4">Loading orders...</p>
+                </div>
+              ) : orders.length === 0 ? (
                 <div className="text-center py-12">
                   <ShoppingBag className="h-16 w-16 text-gray-400 mx-auto mb-4" />
                   <p className="text-gray-600">No orders yet</p>
@@ -248,27 +294,29 @@ const Profile = () => {
               ) : (
                 <div className="space-y-4">
                   {orders.map((order) => (
-                    <div key={order.id} className="border rounded-lg p-6">
+                    <div key={order._id || order.id} className="border rounded-lg p-6">
                       <div className="flex justify-between items-start mb-4">
                         <div>
-                          <h3 className="font-semibold">Order {order.id}</h3>
+                          <h3 className="font-semibold">Order {order.orderNumber || order.id}</h3>
                           <p className="text-gray-600 text-sm">
-                            Placed on {new Date(order.date).toLocaleDateString()}
+                            Placed on {new Date(order.createdAt || order.date).toLocaleDateString()}
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className="font-semibold">${order.total.toFixed(2)}</p>
+                          <p className="font-semibold">${order.total?.toFixed(2)}</p>
                           <span className={`inline-block px-2 py-1 rounded-full text-xs ${
-                            order.status === 'Delivered' 
+                            order.status === 'delivered' || order.status === 'Delivered' 
                               ? 'bg-green-100 text-green-800'
-                              : 'bg-blue-100 text-blue-800'
+                              : order.status === 'shipped' || order.status === 'Shipped'
+                              ? 'bg-blue-100 text-blue-800'
+                              : 'bg-yellow-100 text-yellow-800'
                           }`}>
                             {order.status}
                           </span>
                         </div>
                       </div>
                       <div className="space-y-2">
-                        {order.items.map((item, index) => (
+                        {order.items?.map((item, index) => (
                           <div key={index} className="flex justify-between text-sm">
                             <span>{item.quantity}x {item.name}</span>
                             <span>${(item.quantity * item.price).toFixed(2)}</span>
@@ -285,7 +333,12 @@ const Profile = () => {
           {activeTab === 'wishlist' && (
             <div>
               <h2 className="text-xl font-bold text-charcoal mb-6">My Wishlist</h2>
-              {wishlist.length === 0 ? (
+              {loading ? (
+                <div className="text-center py-12">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-maasai-red mx-auto"></div>
+                  <p className="text-gray-600 mt-4">Loading wishlist...</p>
+                </div>
+              ) : wishlist.length === 0 ? (
                 <div className="text-center py-12">
                   <Heart className="h-16 w-16 text-gray-400 mx-auto mb-4" />
                   <p className="text-gray-600">Your wishlist is empty</p>

@@ -1,9 +1,9 @@
 // src/components/AdminLayout.jsx
 import React from 'react';
-import { Link, useLocation, Outlet } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Package, Users, ShoppingCart, BarChart3, Settings, LogOut } from 'lucide-react';
 
-const AdminLayout = () => {
+const AdminLayout = ({ children }) => {
   const location = useLocation();
 
   const navItems = [
@@ -21,7 +21,7 @@ const AdminLayout = () => {
   return (
     <div className="min-h-screen bg-gray-100 flex">
       {/* Sidebar */}
-      <div className="w-64 bg-kenyan-brown text-white">
+      <div className="w-64 bg-kenyan-brown text-white flex-shrink-0">
         <div className="p-6">
           <div className="flex items-center space-x-2 mb-8">
             <div className="w-8 h-8 bg-maasai-red rounded-full flex items-center justify-center">
@@ -61,7 +61,7 @@ const AdminLayout = () => {
 
       {/* Main Content */}
       <div className="flex-1 overflow-auto">
-        <Outlet />
+        {children}
       </div>
     </div>
   );

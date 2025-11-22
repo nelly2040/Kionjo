@@ -27,9 +27,7 @@ router.post('/', [
   body('name').notEmpty().withMessage('Product name is required'),
   body('description').notEmpty().withMessage('Product description is required'),
   body('price').isNumeric().withMessage('Price must be a number'),
-  body('category').notEmpty().withMessage('Category is required'),
-  body('artisan.name').notEmpty().withMessage('Artisan name is required'),
-  body('origin').notEmpty().withMessage('Origin is required')
+  body('category').notEmpty().withMessage('Category is required')
 ], createProduct);
 
 router.put('/:id', [

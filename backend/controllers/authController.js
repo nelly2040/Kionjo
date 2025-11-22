@@ -14,7 +14,7 @@ export const register = async (req, res) => {
       });
     }
 
-    const { firstName, lastName, email, password, role } = req.body;
+    const { firstName, lastName, email, password } = req.body;
 
     // Check if user exists
     const existingUser = await User.findOne({ email });
@@ -31,7 +31,7 @@ export const register = async (req, res) => {
       lastName,
       email,
       password,
-      role: role || 'customer'
+      role: 'customer'
     });
 
     const token = generateToken(user._id);
@@ -40,7 +40,13 @@ export const register = async (req, res) => {
       success: true,
       message: 'User registered successfully',
       token,
-      user
+      user: {
+        id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        role: user.role
+      }
     });
   } catch (error) {
     console.error('Registration error:', error);
@@ -73,20 +79,19 @@ export const login = async (req, res) => {
       });
     }
 
-    if (!user.isActive) {
-      return res.status(401).json({
-        success: false,
-        message: 'Account has been deactivated'
-      });
-    }
-
     const token = generateToken(user._id);
 
     res.json({
       success: true,
       message: 'Login successful',
       token,
-      user
+      user: {
+        id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        role: user.role
+      }
     });
   } catch (error) {
     console.error('Login error:', error);
@@ -102,7 +107,15 @@ export const getMe = async (req, res) => {
     const user = await User.findById(req.user.id);
     res.json({
       success: true,
-      user
+      user: {
+        id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        role: user.role,
+        phone: user.phone,
+        address: user.address
+      }
     });
   } catch (error) {
     console.error('Get user error:', error);
@@ -131,7 +144,15 @@ export const updateProfile = async (req, res) => {
     res.json({
       success: true,
       message: 'Profile updated successfully',
-      user
+      user: {
+        id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        role: user.role,
+        phone: user.phone,
+        address: user.address
+      }
     });
   } catch (error) {
     console.error('Update profile error:', error);

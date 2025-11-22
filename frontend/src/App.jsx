@@ -2,6 +2,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
+import { AuthProvider } from './contexts/AuthContext';
 import { CartProvider } from './contexts/CartContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -19,67 +20,69 @@ import About from './pages/About';
 import Contact from './pages/Contact';
 import NotFound from './pages/NotFound';
 
-// Admin Components - FIXED: Use different import names
+// Admin Components
 import AdminLayout from './pages/admin/AdminLayout';
 import Dashboard from './pages/admin/Dashboard';
-import AdminProducts from './pages/admin/Products'; // FIXED: Changed import name
+import AdminProducts from './pages/admin/Products';
 import ProductForm from './pages/admin/ProductForm';
 import Users from './pages/admin/Users';
 
 function App() {
   return (
-    <CartProvider>
-      <Router>
-        <div className="min-h-screen bg-cream flex flex-col">
-          {/* Public Routes - Show Navbar & Footer */}
-          <Routes>
-            <Route path="/admin/*" element={
-              // Admin routes don't show the public navbar/footer
-              <AdminRoutes />
-            } />
-            <Route path="*" element={
-              // Public routes show navbar and footer
-              <>
-                <Navbar />
-                <main className="flex-grow">
-                  <Routes>
-                    <Route path="/" element={<Home />} />
-                    <Route path="/products" element={<Products />} />
-                    <Route path="/product/:id" element={<ProductDetail />} />
-                    <Route path="/cart" element={<Cart />} />
-                    <Route path="/checkout" element={<Checkout />} />
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/register" element={<Register />} />
-                    <Route path="/profile" element={<Profile />} />
-                    <Route path="/about" element={<About />} />
-                    <Route path="/contact" element={<Contact />} />
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </main>
-                <Footer />
-              </>
-            } />
-          </Routes>
+    <AuthProvider>
+      <CartProvider>
+        <Router>
+          <div className="min-h-screen bg-cream flex flex-col">
+            {/* Public Routes - Show Navbar & Footer */}
+            <Routes>
+              <Route path="/admin/*" element={
+                // Admin routes don't show the public navbar/footer
+                <AdminRoutes />
+              } />
+              <Route path="*" element={
+                // Public routes show navbar and footer
+                <>
+                  <Navbar />
+                  <main className="flex-grow">
+                    <Routes>
+                      <Route path="/" element={<Home />} />
+                      <Route path="/products" element={<Products />} />
+                      <Route path="/product/:id" element={<ProductDetail />} />
+                      <Route path="/cart" element={<Cart />} />
+                      <Route path="/checkout" element={<Checkout />} />
+                      <Route path="/login" element={<Login />} />
+                      <Route path="/register" element={<Register />} />
+                      <Route path="/profile" element={<Profile />} />
+                      <Route path="/about" element={<About />} />
+                      <Route path="/contact" element={<Contact />} />
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                  </main>
+                  <Footer />
+                </>
+              } />
+            </Routes>
 
-          <Toaster 
-            position="top-right"
-            toastOptions={{
-              duration: 3000,
-              style: {
-                background: '#8B4513',
-                color: '#FFD700',
-              },
-              success: {
-                iconTheme: {
-                  primary: '#FFD700',
-                  secondary: '#8B4513',
+            <Toaster 
+              position="top-right"
+              toastOptions={{
+                duration: 3000,
+                style: {
+                  background: '#8B4513',
+                  color: '#FFD700',
                 },
-              },
-            }}
-          />
-        </div>
-      </Router>
-    </CartProvider>
+                success: {
+                  iconTheme: {
+                    primary: '#FFD700',
+                    secondary: '#8B4513',
+                  },
+                },
+              }}
+            />
+          </div>
+        </Router>
+      </CartProvider>
+    </AuthProvider>
   );
 }
 
