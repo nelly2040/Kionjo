@@ -109,7 +109,7 @@ export const processPayment = async (req, res) => {
 
 export const getOrders = async (req, res) => {
   try {
-    const { page = 1, limit = 10, status } = req.query;
+    const { page = 1, limit = 50, status } = req.query;
 
     let query = {};
     if (status && status !== 'all') {
@@ -117,7 +117,8 @@ export const getOrders = async (req, res) => {
     }
 
     const orders = await Order.find(query)
-      .populate('user', 'firstName lastName email')
+      .populate('user', 'firstName lastName email phone')
+      .populate('items.product', 'name images price')
       .sort({ createdAt: -1 })
       .limit(limit * 1)
       .skip((page - 1) * limit);

@@ -2,7 +2,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider } from './contexts/AuthContext'; // Fixed: AuthContexts
 import { CartProvider } from './contexts/CartContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -26,6 +26,7 @@ import Dashboard from './pages/admin/Dashboard';
 import AdminProducts from './pages/admin/Products';
 import ProductForm from './pages/admin/ProductForm';
 import Users from './pages/admin/Users';
+import Orders from './pages/admin/Orders'; // ADD THIS IMPORT
 
 function App() {
   return (
@@ -95,37 +96,143 @@ const AdminRoutes = () => (
       <Route path="products/new" element={<ProductForm />} />
       <Route path="products/edit/:id" element={<ProductForm />} />
       <Route path="users" element={<Users />} />
-      <Route path="orders" element={<OrdersPage />} />
+      <Route path="orders" element={<Orders />} />
       <Route path="settings" element={<SettingsPage />} />
     </Routes>
   </AdminLayout>
 );
 
-// Placeholder components for admin routes
-const OrdersPage = () => (
-  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <h1 className="text-3xl font-bold text-charcoal mb-8">Order Management</h1>
-    <div className="bg-white rounded-lg shadow-md p-8 text-center">
-      <div className="bg-kenyan-gold rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-        <span className="text-2xl">📦</span>
-      </div>
-      <h2 className="text-xl font-semibold text-charcoal mb-2">Orders Management</h2>
-      <p className="text-gray-600 mb-4">Complete order tracking and management system</p>
-      <p className="text-sm text-gray-500">This feature will be implemented in the backend phase</p>
-    </div>
-  </div>
-);
-
+// Settings Page Component
 const SettingsPage = () => (
   <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <h1 className="text-3xl font-bold text-charcoal mb-8">Admin Settings</h1>
-    <div className="bg-white rounded-lg shadow-md p-8 text-center">
-      <div className="bg-kenyan-gold rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-        <span className="text-2xl">⚙️</span>
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      {/* Store Settings */}
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="flex items-center mb-4">
+          <div className="bg-kenyan-gold rounded-full w-12 h-12 flex items-center justify-center mr-4">
+            <span className="text-xl">🏪</span>
+          </div>
+          <h2 className="text-xl font-semibold text-charcoal">Store Settings</h2>
+        </div>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Store Name
+            </label>
+            <input
+              type="text"
+              className="w-full border border-gray-300 rounded-lg px-4 py-2"
+              placeholder="Kionjo Crafts"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Store Email
+            </label>
+            <input
+              type="email"
+              className="w-full border border-gray-300 rounded-lg px-4 py-2"
+              placeholder="hello@kionjo.com"
+            />
+          </div>
+        </div>
       </div>
-      <h2 className="text-xl font-semibold text-charcoal mb-2">System Settings</h2>
-      <p className="text-gray-600 mb-4">Configure your store settings and preferences</p>
-      <p className="text-sm text-gray-500">This feature will be implemented in the backend phase</p>
+
+      {/* Payment Settings */}
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="flex items-center mb-4">
+          <div className="bg-kenyan-gold rounded-full w-12 h-12 flex items-center justify-center mr-4">
+            <span className="text-xl">💳</span>
+          </div>
+          <h2 className="text-xl font-semibold text-charcoal">Payment Settings</h2>
+        </div>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Stripe Public Key
+            </label>
+            <input
+              type="text"
+              className="w-full border border-gray-300 rounded-lg px-4 py-2"
+              placeholder="pk_test_..."
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Stripe Secret Key
+            </label>
+            <input
+              type="password"
+              className="w-full border border-gray-300 rounded-lg px-4 py-2"
+              placeholder="sk_test_..."
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Shipping Settings */}
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="flex items-center mb-4">
+          <div className="bg-kenyan-gold rounded-full w-12 h-12 flex items-center justify-center mr-4">
+            <span className="text-xl">🚚</span>
+          </div>
+          <h2 className="text-xl font-semibold text-charcoal">Shipping Settings</h2>
+        </div>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Shipping Cost
+            </label>
+            <input
+              type="number"
+              className="w-full border border-gray-300 rounded-lg px-4 py-2"
+              placeholder="15.00"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Free Shipping Threshold
+            </label>
+            <input
+              type="number"
+              className="w-full border border-gray-300 rounded-lg px-4 py-2"
+              placeholder="100.00"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Notification Settings */}
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="flex items-center mb-4">
+          <div className="bg-kenyan-gold rounded-full w-12 h-12 flex items-center justify-center mr-4">
+            <span className="text-xl">🔔</span>
+          </div>
+          <h2 className="text-xl font-semibold text-charcoal">Notifications</h2>
+        </div>
+        <div className="space-y-3">
+          <label className="flex items-center">
+            <input type="checkbox" className="rounded text-kenyan-brown" defaultChecked />
+            <span className="ml-2 text-sm text-gray-700">Email notifications for new orders</span>
+          </label>
+          <label className="flex items-center">
+            <input type="checkbox" className="rounded text-kenyan-brown" defaultChecked />
+            <span className="ml-2 text-sm text-gray-700">Low stock alerts</span>
+          </label>
+          <label className="flex items-center">
+            <input type="checkbox" className="rounded text-kenyan-brown" />
+            <span className="ml-2 text-sm text-gray-700">Weekly sales reports</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    {/* Save Settings Button */}
+    <div className="mt-8 flex justify-end">
+      <button className="bg-maasai-red text-white px-6 py-3 rounded-lg hover:bg-red-700 transition duration-200 font-semibold">
+        Save Settings
+      </button>
     </div>
   </div>
 );

@@ -1,54 +1,83 @@
 // src/pages/admin/Dashboard.jsx
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Package, Users, ShoppingCart, BarChart3, Settings, Plus } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { usersAPI, ordersAPI, productsAPI } from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
 
 const Dashboard = () => {
   const [stats, setStats] = useState({
-    totalProducts: 30,
-    totalUsers: 125,
-    totalOrders: 89,
-    revenue: 4567.89
+    totalUsers: 0,
+    totalOrders: 0,
+    totalProducts: 0,
+    recentOrders: []
   });
+  const [loading, setLoading] = useState(true);
+  const { isAdmin } = useAuth();
 
-  const recentOrders = [
-    { id: 'ORD-001', customer: 'John Doe', amount: 145.99, status: 'Delivered', date: '2024-01-15' },
-    { id: 'ORD-002', customer: 'Sarah Smith', amount: 78.00, status: 'Shipped', date: '2024-01-14' },
-    { id: 'ORD-003', customer: 'Mike Johnson', amount: 225.50, status: 'Processing', date: '2024-01-13' },
-    { id: 'ORD-004', customer: 'Emily Brown', amount: 92.75, status: 'Pending', date: '2024-01-12' }
-  ];
+  useEffect(() => {
+    if (isAdmin) {
+      fetchDashboardData();
+    }
+  }, [isAdmin]);
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch data in parallel
+      const [usersResponse, ordersResponse, productsResponse] = await Promise.all([
+        usersAPI.getAll({ limit: 1000 }), // Get all users for count
+        ordersAPI.getAll({ limit: 5 }),   // Get recent orders
+        productsAPI.getAll({ limit: 1000 }) // Get all products for count
+      ]);
+
+      setStats({
+        totalUsers: usersResponse.count || 0,
+        totalOrders: ordersResponse.total || 0,
+        totalProducts: productsResponse.total || 0,
+        recentOrders: ordersResponse.orders || []
+      });
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!isAdmin) {
+    return (
+      <div className="p-6">
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+          Access denied. Admin privileges required.
+        </div>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="p-6">
+        <div className="animate-pulse space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="h-32 bg-gray-200 rounded-lg"></div>
+            ))}
+          </div>
+          <div className="h-64 bg-gray-200 rounded-lg"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-charcoal">Admin Dashboard</h1>
-        <Link
-          to="/admin/products/new"
-          className="bg-maasai-red text-white px-6 py-3 rounded-lg font-semibold hover:bg-red-700 transition duration-200 flex items-center"
-        >
-          <Plus className="mr-2 h-5 w-5" />
-          Add New Product
-        </Link>
-      </div>
+    <div className="p-6">
+      <h1 className="text-3xl font-bold text-charcoal mb-8">Admin Dashboard</h1>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white rounded-lg shadow-md p-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-kenyan-gold">
           <div className="flex items-center">
             <div className="bg-kenyan-gold rounded-full p-3 mr-4">
-              <Package className="h-6 w-6 text-kenyan-brown" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Total Products</p>
-              <p className="text-2xl font-bold text-charcoal">{stats.totalProducts}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="flex items-center">
-            <div className="bg-kenyan-gold rounded-full p-3 mr-4">
-              <Users className="h-6 w-6 text-kenyan-brown" />
+              <span className="text-kenyan-brown text-xl">👥</span>
             </div>
             <div>
               <p className="text-sm text-gray-600">Total Users</p>
@@ -57,10 +86,10 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-maasai-red">
           <div className="flex items-center">
-            <div className="bg-kenyan-gold rounded-full p-3 mr-4">
-              <ShoppingCart className="h-6 w-6 text-kenyan-brown" />
+            <div className="bg-maasai-red rounded-full p-3 mr-4">
+              <span className="text-white text-xl">📦</span>
             </div>
             <div>
               <p className="text-sm text-gray-600">Total Orders</p>
@@ -69,37 +98,40 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-kenyan-brown">
           <div className="flex items-center">
-            <div className="bg-kenyan-gold rounded-full p-3 mr-4">
-              <BarChart3 className="h-6 w-6 text-kenyan-brown" />
+            <div className="bg-kenyan-brown rounded-full p-3 mr-4">
+              <span className="text-kenyan-gold text-xl">🛍️</span>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Total Revenue</p>
-              <p className="text-2xl font-bold text-charcoal">${stats.revenue}</p>
+              <p className="text-sm text-gray-600">Total Products</p>
+              <p className="text-2xl font-bold text-charcoal">{stats.totalProducts}</p>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Recent Orders */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-bold text-charcoal mb-4">Recent Orders</h2>
+      {/* Recent Orders */}
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <h2 className="text-xl font-semibold text-charcoal mb-4">Recent Orders</h2>
+        {stats.recentOrders.length > 0 ? (
           <div className="space-y-4">
-            {recentOrders.map((order) => (
-              <div key={order.id} className="flex justify-between items-center border-b pb-4 last:border-b-0 last:pb-0">
+            {stats.recentOrders.map((order) => (
+              <div key={order._id} className="flex justify-between items-center p-4 border rounded-lg">
                 <div>
-                  <p className="font-semibold text-charcoal">{order.id}</p>
-                  <p className="text-sm text-gray-600">{order.customer}</p>
+                  <p className="font-semibold">{order.orderNumber}</p>
+                  <p className="text-sm text-gray-600">
+                    {order.user?.firstName} {order.user?.lastName}
+                  </p>
                 </div>
                 <div className="text-right">
-                  <p className="font-semibold text-kenyan-chocolate">${order.amount}</p>
+                  <p className="font-semibold">${order.total?.toFixed(2)}</p>
                   <span className={`inline-block px-2 py-1 rounded-full text-xs ${
-                    order.status === 'Delivered' ? 'bg-green-100 text-green-800' :
-                    order.status === 'Shipped' ? 'bg-blue-100 text-blue-800' :
-                    order.status === 'Processing' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-gray-100 text-gray-800'
+                    order.status === 'delivered' 
+                      ? 'bg-green-100 text-green-800'
+                      : order.status === 'shipped'
+                      ? 'bg-blue-100 text-blue-800'
+                      : 'bg-yellow-100 text-yellow-800'
                   }`}>
                     {order.status}
                   </span>
@@ -107,48 +139,11 @@ const Dashboard = () => {
               </div>
             ))}
           </div>
-          <Link
-            to="/admin/orders"
-            className="block text-center mt-4 text-kenyan-brown hover:text-kenyan-chocolate font-semibold"
-          >
-            View All Orders
-          </Link>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-bold text-charcoal mb-4">Quick Actions</h2>
-          <div className="grid grid-cols-2 gap-4">
-            <Link
-              to="/admin/products"
-              className="bg-cream rounded-lg p-4 text-center hover:bg-kenyan-gold transition duration-200"
-            >
-              <Package className="h-8 w-8 text-kenyan-brown mx-auto mb-2" />
-              <p className="font-semibold text-charcoal">Manage Products</p>
-            </Link>
-            <Link
-              to="/admin/users"
-              className="bg-cream rounded-lg p-4 text-center hover:bg-kenyan-gold transition duration-200"
-            >
-              <Users className="h-8 w-8 text-kenyan-brown mx-auto mb-2" />
-              <p className="font-semibold text-charcoal">Manage Users</p>
-            </Link>
-            <Link
-              to="/admin/orders"
-              className="bg-cream rounded-lg p-4 text-center hover:bg-kenyan-gold transition duration-200"
-            >
-              <ShoppingCart className="h-8 w-8 text-kenyan-brown mx-auto mb-2" />
-              <p className="font-semibold text-charcoal">View Orders</p>
-            </Link>
-            <Link
-              to="/admin/settings"
-              className="bg-cream rounded-lg p-4 text-center hover:bg-kenyan-gold transition duration-200"
-            >
-              <Settings className="h-8 w-8 text-kenyan-brown mx-auto mb-2" />
-              <p className="font-semibold text-charcoal">Settings</p>
-            </Link>
+        ) : (
+          <div className="text-center py-8 text-gray-500">
+            <p>No recent orders</p>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

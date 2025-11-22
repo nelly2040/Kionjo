@@ -25,7 +25,7 @@ export const register = async (req, res) => {
       });
     }
 
-    // Create user
+    // Create user as customer by default
     const user = await User.create({
       firstName,
       lastName,

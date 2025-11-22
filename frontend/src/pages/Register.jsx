@@ -1,8 +1,8 @@
-// In src/pages/Register.jsx
+// src/pages/Register.jsx
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, User } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/AuthContext'; // FIXED: Import from AuthContexts
 import toast from 'react-hot-toast';
 
 const Register = () => {
@@ -41,8 +41,14 @@ const Register = () => {
       const result = await register(registerData);
       
       if (result.success) {
-        toast.success('Account created successfully!');
-        navigate('/');
+        toast.success(`Account created successfully! You are registered as ${result.user.role}`);
+        
+        // FIXED: Redirect based on user role
+        if (result.user.role === 'admin') {
+          navigate('/admin'); // Redirect to admin page for admins
+        } else {
+          navigate('/'); // Redirect to home page for customers
+        }
       } else {
         toast.error(result.error || 'Registration failed');
       }
@@ -204,10 +210,18 @@ const Register = () => {
           <div>
             <button
               type="submit"
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-maasai-red hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-maasai-red transition duration-200"
+              disabled={loading}
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-maasai-red hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-maasai-red transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Create Account
+              {loading ? 'Creating Account...' : 'Create Account'}
             </button>
+          </div>
+
+          {/* Updated Admin Info Note */}
+          <div className="bg-kenyan-gold bg-opacity-10 border border-kenyan-gold rounded-lg p-4">
+            <p className="text-sm text-kenyan-brown text-center">
+              <strong>Admin Access:</strong> Use admin credentials to access the admin panel.
+            </p>
           </div>
         </form>
       </div>

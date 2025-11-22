@@ -1,3 +1,4 @@
+// src/pages/Login.jsx
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
@@ -12,7 +13,7 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   
-  const { login } = useAuth();
+  const { login, user } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -24,7 +25,13 @@ const Login = () => {
       
       if (result.success) {
         toast.success('Welcome back!');
-        navigate('/');
+        
+        // Redirect based on user role
+        if (result.user.role === 'admin') {
+          navigate('/admin'); // Redirect to admin page for admins
+        } else {
+          navigate('/'); // Redirect to home page for customers
+        }
       } else {
         toast.error(result.error || 'Login failed');
       }
@@ -124,10 +131,18 @@ const Login = () => {
           <div>
             <button
               type="submit"
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-maasai-red hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-maasai-red transition duration-200"
+              disabled={loading}
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-maasai-red hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-maasai-red transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Sign in
+              {loading ? 'Signing in...' : 'Sign in'}
             </button>
+          </div>
+
+          {/* Admin Login Hint */}
+          <div className="bg-kenyan-gold bg-opacity-10 border border-kenyan-gold rounded-lg p-4">
+            <p className="text-sm text-kenyan-brown text-center">
+              <strong>Admin Access:</strong> Login with admin credentials to access the admin panel.
+            </p>
           </div>
         </form>
       </div>
