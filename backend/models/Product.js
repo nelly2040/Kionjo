@@ -4,71 +4,109 @@ import mongoose from 'mongoose';
 const productSchema = new mongoose.Schema({
   name: {
     type: String,
-    required: true,
-    trim: true
+    required: [true, 'Product name is required'],
+    trim: true,
+    maxlength: [100, 'Product name cannot be more than 100 characters']
   },
   description: {
     type: String,
-    required: true
+    required: [true, 'Product description is required'],
+    maxlength: [2000, 'Description cannot be more than 2000 characters']
   },
   price: {
     type: Number,
-    required: true,
-    min: 0
+    required: [true, 'Product price is required'],
+    min: [0, 'Price cannot be negative']
+  },
+  originalPrice: {
+    type: Number,
+    min: [0, 'Original price cannot be negative']
   },
   category: {
     type: String,
-    required: true,
-    enum: ['jewelry', 'home-decor', 'sculptures', 'clothing', 'footwear', 'textiles']
+    required: [true, 'Product category is required'],
+    enum: [
+      'jewelry', 'textiles', 'home-decor', 'sculptures', 'art',
+      'accessories', 'footwear', 'musical-instruments', 'stationery',
+      'toys', 'pet-accessories'
+    ]
   },
   images: [{
     type: String,
-    required: true
+    required: [true, 'At least one product image is required']
   }],
   artisan: {
     name: {
       type: String,
-      required: true
+      required: [true, 'Artisan name is required']
     },
     location: {
       type: String,
-      required: true
+      required: [true, 'Artisan location is required']
     },
     story: {
       type: String,
-      required: true
+      required: [true, 'Artisan story is required']
     },
     yearsExperience: {
       type: Number,
-      default: 0
+      min: 0
     }
+  },
+  origin: {
+    type: String,
+    required: [true, 'Product origin is required']
   },
   materials: [{
     type: String,
-    required: true
+    required: [true, 'At least one material is required']
   }],
-  origin: {
-    type: String,
-    required: true
-  },
   dimensions: String,
   careInstructions: String,
   stock: {
     type: Number,
-    required: true,
-    min: 0
+    required: [true, 'Stock quantity is required'],
+    min: [0, 'Stock cannot be negative'],
+    default: 0
   },
   featured: {
     type: Boolean,
     default: false
   },
-  tags: [String]
+  tags: [String],
+  ratings: {
+    average: {
+      type: Number,
+      min: 0,
+      max: 5,
+      default: 0
+    },
+    count: {
+      type: Number,
+      default: 0
+    }
+  },
+  isActive: {
+    type: Boolean,
+    default: true
+  }
 }, {
   timestamps: true
 });
 
-// Index for better search performance
-productSchema.index({ name: 'text', description: 'text', category: 1 });
+// Index for search functionality
+productSchema.index({ 
+  name: 'text', 
+  description: 'text', 
+  'artisan.name': 'text',
+  materials: 'text'
+});
+
+// Virtual for discount percentage
+productSchema.virtual('discountPercentage').get(function() {
+  if (!this.originalPrice || this.originalPrice <= this.price) return 0;
+  return Math.round(((this.originalPrice - this.price) / this.originalPrice) * 100);
+});
 
 const Product = mongoose.model('Product', productSchema);
 
