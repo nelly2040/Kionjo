@@ -1,8 +1,14 @@
-// frontend/src/services/api.js
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+
+// Add this console log to see what URL is being used
+console.log('🔗 API Base URL:', API_BASE_URL);
+
 // Generic API call function
 export const apiCall = async (endpoint, options = {}) => {
   const token = localStorage.getItem('token');
+  const fullUrl = `${API_BASE_URL}${endpoint}`;
+  
+  console.log('🌐 Making API call to:', fullUrl); // Debug log
   
   const config = {
     headers: {
@@ -14,7 +20,7 @@ export const apiCall = async (endpoint, options = {}) => {
   };
 
   try {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+    const response = await fetch(fullUrl, config);
     const data = await response.json();
     
     if (!response.ok) {
@@ -23,7 +29,8 @@ export const apiCall = async (endpoint, options = {}) => {
     
     return data;
   } catch (error) {
-    console.error('API call error:', error);
+    console.error('❌ API call error:', error);
+    console.error('📡 Failed URL:', fullUrl);
     throw error;
   }
 };
