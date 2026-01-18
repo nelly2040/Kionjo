@@ -1,4 +1,3 @@
-// backend/server.js
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
@@ -15,26 +14,30 @@ const app = express();
 // Security middleware
 app.use(helmet());
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:3000',
-  credentials: true
+  origin: [
+    'https://kionjo.netlify.app',
+    'http://localhost:3000',
+    'http://localhost:5173'
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Rate limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
+  windowMs: 15 * 60 * 1000,
+  max: 100
 });
 app.use('/api/', limiter);
 
 // MongoDB connection
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/kionjo';
 
-mongoose.connect(MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-}).then(() => {
+mongoose.connect(MONGODB_URI)
+.then(() => {
   console.log('✅ MongoDB Connected Successfully');
   console.log(`📊 Database: ${mongoose.connection.name}`);
 }).catch(err => {
@@ -101,12 +104,58 @@ const productSchema = new mongoose.Schema({
 
 const Product = mongoose.model('Product', productSchema);
 
+// Order Schema
+const orderSchema = new mongoose.Schema({
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  items: [{
+    product: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Product',
+      required: true
+    },
+    quantity: { type: Number, required: true, min: 1 },
+    price: { type: Number, required: true, min: 0 }
+  }],
+  totalAmount: { type: Number, required: true, min: 0 },
+  shippingAddress: {
+    street: { type: String, required: true },
+    city: { type: String, required: true },
+    state: { type: String, required: true },
+    country: { type: String, required: true },
+    postalCode: { type: String, required: true }
+  },
+  paymentMethod: {
+    type: String,
+    enum: ['credit_card', 'paypal', 'mpesa', 'cash_on_delivery'],
+    required: true
+  },
+  paymentStatus: {
+    type: String,
+    enum: ['pending', 'completed', 'failed', 'refunded'],
+    default: 'pending'
+  },
+  orderStatus: {
+    type: String,
+    enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled'],
+    default: 'pending'
+  },
+  createdAt: { type: Date, default: Date.now }
+});
+
+const Order = mongoose.model('Order', orderSchema);
+
 // ================ AUTHENTICATION ROUTES ================
 
 // Register Route
-app.post('/api/auth/register', async (req, res) => {
+app.post('/auth/register', async (req, res) => {
   try {
     const { firstName, lastName, email, password, role } = req.body;
+    
+    console.log('Registration attempt for:', email);
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
@@ -117,12 +166,15 @@ app.post('/api/auth/register', async (req, res) => {
       });
     }
 
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     // Create new user
     const user = new User({
       firstName,
       lastName,
       email,
-      password, // In production, hash this: await bcrypt.hash(password, 10)
+      password: hashedPassword,
       role: role || 'customer'
     });
 
@@ -166,7 +218,7 @@ app.post('/api/auth/register', async (req, res) => {
 });
 
 // Login Route
-app.post('/api/auth/login', async (req, res) => {
+app.post('/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
     console.log('Login attempt for:', email);
@@ -180,9 +232,8 @@ app.post('/api/auth/login', async (req, res) => {
       });
     }
 
-    // Check password (plain text comparison for now)
-    // TODO: Replace with bcrypt.compare in production
-    const isPasswordValid = password === user.password;
+    // Check password
+    const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       return res.status(401).json({ 
         success: false, 
@@ -227,8 +278,8 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
-// Get current user profile (protected route example)
-app.get('/api/auth/me', async (req, res) => {
+// Get current user profile
+app.get('/auth/me', async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
     
@@ -264,10 +315,52 @@ app.get('/api/auth/me', async (req, res) => {
   }
 });
 
+// Update user profile
+app.put('/auth/profile', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    
+    if (!token) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'No token provided' 
+      });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'kionjo-secret-key');
+    
+    const user = await User.findByIdAndUpdate(
+      decoded.userId,
+      req.body,
+      { new: true }
+    ).select('-password');
+    
+    if (!user) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'User not found' 
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      user
+    });
+  } catch (error) {
+    console.error('Update profile error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error',
+      error: error.message 
+    });
+  }
+});
+
 // ================ PRODUCT ROUTES ================
 
 // Get all products
-app.get('/api/products', async (req, res) => {
+app.get('/products', async (req, res) => {
   try {
     const { category, featured, page = 1, limit = 12, search } = req.query;
     
@@ -316,8 +409,29 @@ app.get('/api/products', async (req, res) => {
   }
 });
 
+// Get featured products
+app.get('/products/featured', async (req, res) => {
+  try {
+    const products = await Product.find({ featured: true })
+      .limit(8)
+      .sort({ createdAt: -1 });
+    
+    res.json({
+      success: true,
+      products
+    });
+  } catch (error) {
+    console.error('Get featured products error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error',
+      error: error.message 
+    });
+  }
+});
+
 // Get single product
-app.get('/api/products/:id', async (req, res) => {
+app.get('/products/:id', async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
     
@@ -343,8 +457,25 @@ app.get('/api/products/:id', async (req, res) => {
 });
 
 // Create product (admin only)
-app.post('/api/products', async (req, res) => {
+app.post('/products', async (req, res) => {
   try {
+    // Check auth token first
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'No token provided' 
+      });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'kionjo-secret-key');
+    if (decoded.role !== 'admin') {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Admin access required' 
+      });
+    }
+
     const product = new Product(req.body);
     const savedProduct = await product.save();
     
@@ -364,8 +495,25 @@ app.post('/api/products', async (req, res) => {
 });
 
 // Update product (admin only)
-app.put('/api/products/:id', async (req, res) => {
+app.put('/products/:id', async (req, res) => {
   try {
+    // Check auth token first
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'No token provided' 
+      });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'kionjo-secret-key');
+    if (decoded.role !== 'admin') {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Admin access required' 
+      });
+    }
+
     const product = await Product.findByIdAndUpdate(
       req.params.id,
       req.body,
@@ -395,8 +543,25 @@ app.put('/api/products/:id', async (req, res) => {
 });
 
 // Delete product (admin only)
-app.delete('/api/products/:id', async (req, res) => {
+app.delete('/products/:id', async (req, res) => {
   try {
+    // Check auth token first
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'No token provided' 
+      });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'kionjo-secret-key');
+    if (decoded.role !== 'admin') {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Admin access required' 
+      });
+    }
+
     const product = await Product.findByIdAndDelete(req.params.id);
     
     if (!product) {
@@ -423,8 +588,25 @@ app.delete('/api/products/:id', async (req, res) => {
 // ================ USER ROUTES ================
 
 // Get all users (admin only)
-app.get('/api/users', async (req, res) => {
+app.get('/users', async (req, res) => {
   try {
+    // Check auth token first
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'No token provided' 
+      });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'kionjo-secret-key');
+    if (decoded.role !== 'admin') {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Admin access required' 
+      });
+    }
+
     const users = await User.find().select('-password');
     res.json({
       success: true,
@@ -441,8 +623,34 @@ app.get('/api/users', async (req, res) => {
   }
 });
 
-// Update user profile
-app.put('/api/users/:id', async (req, res) => {
+// Get user by ID
+app.get('/users/:id', async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).select('-password');
+    
+    if (!user) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'User not found' 
+      });
+    }
+    
+    res.json({
+      success: true,
+      user
+    });
+  } catch (error) {
+    console.error('Get user error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error',
+      error: error.message 
+    });
+  }
+});
+
+// Update user
+app.put('/users/:id', async (req, res) => {
   try {
     const { password, ...updateData } = req.body;
     
@@ -474,10 +682,231 @@ app.put('/api/users/:id', async (req, res) => {
   }
 });
 
+// ================ ORDER ROUTES ================
+
+// Create order
+app.post('/orders', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    
+    if (!token) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'No token provided' 
+      });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'kionjo-secret-key');
+    
+    const order = new Order({
+      ...req.body,
+      user: decoded.userId
+    });
+    
+    const savedOrder = await order.save();
+    
+    res.status(201).json({
+      success: true,
+      message: 'Order created successfully',
+      order: savedOrder
+    });
+  } catch (error) {
+    console.error('Create order error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error',
+      error: error.message 
+    });
+  }
+});
+
+// Get user's orders
+app.get('/orders/my-orders', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    
+    if (!token) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'No token provided' 
+      });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'kionjo-secret-key');
+    
+    const orders = await Order.find({ user: decoded.userId })
+      .populate('items.product', 'name price images')
+      .sort({ createdAt: -1 });
+    
+    res.json({
+      success: true,
+      orders
+    });
+  } catch (error) {
+    console.error('Get orders error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error',
+      error: error.message 
+    });
+  }
+});
+
+// Get order by ID
+app.get('/orders/:id', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    
+    if (!token) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'No token provided' 
+      });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'kionjo-secret-key');
+    
+    const order = await Order.findById(req.params.id)
+      .populate('items.product', 'name price images')
+      .populate('user', 'firstName lastName email');
+    
+    if (!order) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Order not found' 
+      });
+    }
+    
+    // Check if user owns this order or is admin
+    if (order.user._id.toString() !== decoded.userId && decoded.role !== 'admin') {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Not authorized' 
+      });
+    }
+    
+    res.json({
+      success: true,
+      order
+    });
+  } catch (error) {
+    console.error('Get order error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error',
+      error: error.message 
+    });
+  }
+});
+
+// Get all orders (admin only)
+app.get('/orders', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'No token provided' 
+      });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'kionjo-secret-key');
+    if (decoded.role !== 'admin') {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Admin access required' 
+      });
+    }
+
+    const { page = 1, limit = 20, status } = req.query;
+    let query = {};
+    
+    if (status) {
+      query.orderStatus = status;
+    }
+    
+    const orders = await Order.find(query)
+      .populate('items.product', 'name price')
+      .populate('user', 'firstName lastName email')
+      .limit(parseInt(limit))
+      .skip((parseInt(page) - 1) * parseInt(limit))
+      .sort({ createdAt: -1 });
+    
+    const total = await Order.countDocuments(query);
+    
+    res.json({
+      success: true,
+      orders,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(total / parseInt(limit))
+      }
+    });
+  } catch (error) {
+    console.error('Get all orders error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error',
+      error: error.message 
+    });
+  }
+});
+
+// Update order status (admin only)
+app.put('/orders/:id/status', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'No token provided' 
+      });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'kionjo-secret-key');
+    if (decoded.role !== 'admin') {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Admin access required' 
+      });
+    }
+
+    const { status } = req.body;
+    
+    const order = await Order.findByIdAndUpdate(
+      req.params.id,
+      { orderStatus: status },
+      { new: true }
+    );
+    
+    if (!order) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Order not found' 
+      });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Order status updated successfully',
+      order
+    });
+  } catch (error) {
+    console.error('Update order error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error',
+      error: error.message 
+    });
+  }
+});
+
 // ================ HEALTH & UTILITY ROUTES ================
 
 // Health check
-app.get('/api/health', (req, res) => {
+app.get('/health', (req, res) => {
   res.json({ 
     success: true, 
     message: 'Kionjo API is running',
@@ -488,10 +917,11 @@ app.get('/api/health', (req, res) => {
 });
 
 // Test database connection
-app.get('/api/test-db', async (req, res) => {
+app.get('/test-db', async (req, res) => {
   try {
     const usersCount = await User.countDocuments();
     const productsCount = await Product.countDocuments();
+    const ordersCount = await Order.countDocuments();
     
     res.json({
       success: true,
@@ -499,6 +929,7 @@ app.get('/api/test-db', async (req, res) => {
       stats: {
         users: usersCount,
         products: productsCount,
+        orders: ordersCount,
         database: mongoose.connection.name,
         connection: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
       }
@@ -515,27 +946,34 @@ app.get('/api/test-db', async (req, res) => {
 // Get all routes
 app.get('/', (req, res) => {
   const routes = [
-    { method: 'POST', path: '/api/auth/register', description: 'Register new user' },
-    { method: 'POST', path: '/api/auth/login', description: 'Login user' },
-    { method: 'GET', path: '/api/auth/me', description: 'Get current user profile' },
-    { method: 'GET', path: '/api/products', description: 'Get all products with pagination' },
-    { method: 'GET', path: '/api/products/:id', description: 'Get single product' },
-    { method: 'POST', path: '/api/products', description: 'Create product (admin)' },
-    { method: 'PUT', path: '/api/products/:id', description: 'Update product (admin)' },
-    { method: 'DELETE', path: '/api/products/:id', description: 'Delete product (admin)' },
-    { method: 'GET', path: '/api/users', description: 'Get all users (admin)' },
-    { method: 'PUT', path: '/api/users/:id', description: 'Update user profile' },
-    { method: 'GET', path: '/api/health', description: 'Health check' },
-    { method: 'GET', path: '/api/test-db', description: 'Test database connection' }
+    { method: 'POST', path: '/auth/register', description: 'Register new user' },
+    { method: 'POST', path: '/auth/login', description: 'Login user' },
+    { method: 'GET', path: '/auth/me', description: 'Get current user profile' },
+    { method: 'PUT', path: '/auth/profile', description: 'Update user profile' },
+    { method: 'GET', path: '/products', description: 'Get all products with pagination' },
+    { method: 'GET', path: '/products/featured', description: 'Get featured products' },
+    { method: 'GET', path: '/products/:id', description: 'Get single product' },
+    { method: 'POST', path: '/products', description: 'Create product (admin)' },
+    { method: 'PUT', path: '/products/:id', description: 'Update product (admin)' },
+    { method: 'DELETE', path: '/products/:id', description: 'Delete product (admin)' },
+    { method: 'GET', path: '/users', description: 'Get all users (admin)' },
+    { method: 'GET', path: '/users/:id', description: 'Get user by ID' },
+    { method: 'PUT', path: '/users/:id', description: 'Update user profile' },
+    { method: 'POST', path: '/orders', description: 'Create order' },
+    { method: 'GET', path: '/orders/my-orders', description: 'Get user orders' },
+    { method: 'GET', path: '/orders/:id', description: 'Get order by ID' },
+    { method: 'GET', path: '/orders', description: 'Get all orders (admin)' },
+    { method: 'PUT', path: '/orders/:id/status', description: 'Update order status (admin)' },
+    { method: 'GET', path: '/health', description: 'Health check' },
+    { method: 'GET', path: '/test-db', description: 'Test database connection' }
   ];
   
   res.json({ 
     success: true, 
     message: 'Welcome to Kionjo API',
     version: '1.0.0',
-    documentation: 'All routes are prefixed with /api',
     routes: routes,
-    note: 'For admin routes, include Authorization: Bearer <token> header'
+    note: 'For protected routes, include Authorization: Bearer <token> header'
   });
 });
 
